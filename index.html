@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporate Operations Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>.hidden { display: none !important; }</style>
+</head>
+<body class="bg-slate-100 font-sans h-screen overflow-hidden text-slate-800">
+
+    <div id="login-screen" class="flex items-center justify-center h-screen bg-gradient-to-tr from-indigo-700 via-blue-600 to-sky-500">
+        <div class="bg-white/95 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-96 border border-white/20">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-extrabold text-indigo-900 tracking-tight">Operations Portal</h2>
+                <p class="text-xs text-indigo-500 font-medium mt-1">Enterprise Database Gateway Active</p>
+            </div>
+            <div id="login-error-wrong" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg text-center font-medium">
+                Invalid password credentials. Please try again.
+            </div>
+            <div id="login-error-unrecognized" class="hidden mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-700 text-xs rounded-lg text-center font-medium">
+                LDAP account profile not found. Please <strong>contact your admin</strong> to register.
+            </div>
+            <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
+                <div>
+                    <label class="block text-xs font-bold text-indigo-900/60 uppercase tracking-wider">LDAP ID</label>
+                    <input type="text" id="login-ldap" required class="w-full mt-1 p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-indigo-900/60 uppercase tracking-wider">Password</label>
+                    <input type="password" id="login-password" required class="w-full mt-1 p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 text-sm">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30 text-sm">
+                    Authenticate Session
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="main-app" class="hidden flex h-screen bg-slate-50 overflow-hidden">
+        <div id="sidebar" class="w-64 bg-gradient-to-b from-indigo-900 to-slate-900 text-indigo-100 flex flex-col justify-between p-4 shadow-2xl">
+            <div>
+                <div class="p-2 border-b border-indigo-800/60 mb-4">
+                    <h1 class="text-white font-black text-base tracking-wide flex items-center gap-2">
+                        <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>CRX Core Platform
+                    </h1>
+                </div>
+                <nav class="space-y-1" id="nav-links">
+                    <button onclick="switchTab('crx-consults-tab')" class="nav-btn w-full text-left py-2.5 px-4 rounded-lg bg-indigo-800 text-white font-medium text-sm transition">1. CRX Consults</button>
+                    <button onclick="switchTab('management-tab')" class="nav-btn w-full text-left py-2.5 px-4 rounded-lg hover:bg-indigo-800/50 hover:text-white font-medium text-sm transition">2. User Governance</button>
+                </nav>
+            </div>
+            <div class="p-2 border-t border-indigo-800/60 space-y-3">
+                <div>
+                    <div class="text-xs text-indigo-300">User: <span id="user-display-ldap" class="text-white font-bold"></span></div>
+                    <div class="text-[10px] text-indigo-400/80 capitalize" id="user-display-role"></div>
+                </div>
+                <button onclick="handleLogout()" class="block w-full text-center text-sm bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md font-semibold transition">
+                    Secure Logout 
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col overflow-y-auto p-8" id="view-wrapper">
+            <div id="l0-form-tab" class="tab-pane hidden max-w-xl mx-auto w-full bg-white p-8 rounded-xl shadow-md border border-slate-200/60 my-auto">
+                <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+                    <h2 class="text-xl font-bold text-indigo-950">L0 Database Inbound Portal</h2>
+                    <button onclick="handleLogout()" class="text-xs text-red-500 font-bold bg-red-50 px-3 py-1.5 rounded-lg">Logout</button>
+                </div>
+                <form id="ticket-submission-form" class="space-y-4" onsubmit="handleTicketSubmit(event)">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase">Authenticated Identity</label>
+                        <input type="text" id="form-l0-ldap" readonly class="w-full mt-1 p-2.5 bg-slate-100 border text-slate-500 rounded-lg text-sm font-mono font-bold cursor-not-allowed">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold text-slate-500 uppercase">Item ID</label><input type="text" id="form-l0-item-id" required class="w-full mt-1 p-2.5 border rounded-lg text-sm bg-slate-50"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 uppercase">Revision ID</label><input type="text" id="form-l0-revision-id" required class="w-full mt-1 p-2.5 border rounded-lg text-sm bg-slate-50"></div>
+                    </div>
+                    <div><label class="block text-xs font-bold text-slate-500 uppercase">Description Query Details</label><textarea id="form-l0-query-text" rows="4" required class="w-full mt-1 p-2.5 border rounded-lg text-sm bg-slate-50" placeholder="Type info here..."></textarea></div>
+                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg text-sm">Commit Database Form</button>
+                </form>
+            </div>
+
+            <div id="crx-consults-tab" class="tab-pane hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-2xl font-bold text-indigo-950">Database Queue View (Scaled 10,000+ Ready)</h3>
+                    <div class="flex items-center gap-3">
+                        <input type="text" id="crx-search" oninput="resetPageAndRender()" placeholder="Database Search..." class="p-2 border rounded-lg text-xs bg-white">
+                        <select id="crx-filter" onchange="resetPageAndRender()" class="p-2 border rounded-lg text-xs bg-white">
+                            <option value="ALL">All States</option><option value="PENDING">Pending</option><option value="RESOLVED">Resolved</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border overflow-x-auto">
+                    <table class="w-full text-left"><thead class="bg-slate-50 border-b text-slate-400 text-xs uppercase font-bold"><tr class="bg-slate-50 border-b border-slate-200 text-slate-400 text-xs font-bold uppercase tracking-wider"><th class="p-4">Ticket</th><th class="p-4">L0 Submitter</th><th class="p-4">Reference Attributes</th><th class="p-4 w-1/3">Core Doubt Parameters</th><th class="p-4">Evaluator Actions & State Decisions</th></tr></thead><tbody id="crx-queue-tbody" class="text-sm divide-y"></tbody></table>
+                    <div id="pagination-controls" class="flex items-center justify-between p-4 bg-slate-50 border-t text-xs text-slate-600"></div>
+                </div>
+            </div>
+
+            <div id="management-tab" class="tab-pane hidden space-y-6">
+                <h3 class="text-2xl font-bold text-indigo-950">User Governance Profile Engine</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div class="bg-white p-6 rounded-xl border"><h4 class="text-sm font-bold text-slate-700 mb-4 uppercase">Register Account Profile</h4>
+                        <form id="user-creation-form" class="space-y-4" onsubmit="handleCreateUser(event)">
+                            <div><label class="text-xs font-semibold text-slate-500">Corporate LDAP ID</label><input type="text" id="manage-ldap" required class="w-full mt-1 p-2 border rounded-lg text-sm bg-slate-50"></div>
+                            <div><label class="text-xs font-semibold text-slate-500">Access Password</label><input type="password" id="manage-password" required class="w-full mt-1 p-2 border rounded-lg text-sm bg-slate-50"></div>
+                            <div><label class="text-xs font-semibold text-slate-500">Role Operations Group</label><select id="manage-role" class="w-full mt-1 p-2 border rounded-lg text-sm bg-white"><option value="L0">L0 Agent</option><option value="CRX">CRX Consultant</option></select></div>
+                            <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg text-sm">Create Database Profile</button>
+                        </form>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border"><h4 class="text-sm font-bold text-slate-700 mb-4 uppercase">System Accounts Database</h4><div class="max-h-60 overflow-y-auto divide-y" id="users-directory-list"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "https://operations-portal-backend.onrender.com/api";
+        let currentUser = null;
+        let currentPage = 1;
+        const limitPerPage = 25;
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            document.getElementById("login-error-wrong").classList.add("hidden");
+            document.getElementById("login-error-unrecognized").classList.add("hidden");
+
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ldap: document.getElementById("login-ldap").value.trim(),
+                        password: document.getElementById("login-password").value
+                    })
+                });
+
+                if (response.status === 404) return document.getElementById("login-error-unrecognized").classList.remove("hidden");
+                if (response.status === 401) return document.getElementById("login-error-wrong").classList.remove("hidden");
+                
+                currentUser = await response.json();
+                initializeDashboard();
+            } catch (err) { alert("Cannot connect to server. Ensure step 1 node app is running."); }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            document.getElementById("main-app").classList.add("hidden");
+            document.getElementById("login-screen").classList.remove("hidden");
+            document.getElementById("login-form").reset();
+        }
+
+        function initializeDashboard() {
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("main-app").classList.remove("hidden");
+            document.getElementById("user-display-ldap").innerText = currentUser.ldap;
+            document.getElementById("user-display-role").innerText = `${currentUser.role} Token Active`;
+
+            if(currentUser.role === 'L0') {
+                document.getElementById("sidebar").classList.add("hidden");
+                switchTab('l0-form-tab');
+                document.getElementById("form-l0-ldap").value = currentUser.ldap;
+            } else {
+                document.getElementById("sidebar").classList.remove("hidden");
+                switchTab('crx-consults-tab');
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            if(tabId === 'crx-consults-tab') renderCrxQueue();
+            if(tabId === 'management-tab') renderUsersDirectory();
+        }
+
+        async function handleTicketSubmit(e) {
+            e.preventDefault();
+            try {
+                await fetch(`${API_BASE}/tickets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        l0_ldap: currentUser.ldap,
+                        timestamp: new Date().toLocaleString(),
+                        item_id: document.getElementById("form-l0-item-id").value,
+                        revision_id: document.getElementById("form-l0-revision-id").value,
+                        query_text: document.getElementById("form-l0-query-text").value
+                    })
+                });
+                document.getElementById("ticket-submission-form").reset();
+                alert("Saved to Database!");
+            } catch (err) { alert("Failed to commit."); }
+        }
+
+        function resetPageAndRender() { currentPage = 1; renderCrxQueue(); }
+
+        async function renderCrxQueue() {
+            const search = document.getElementById("crx-search").value;
+            const filter = document.getElementById("crx-filter").value;
+            
+            try {
+                const res = await fetch(`${API_BASE}/tickets?page=${currentPage}&limit=${limitPerPage}&search=${encodeURIComponent(search)}&filter=${filter}`);
+                const payload = await res.json();
+                
+                const userRes = await fetch(`${API_BASE}/users`);
+                const allUsers = await userRes.json();
+                const crxOptionsHtml = allUsers.filter(u => u.role === 'CRX').map(u => `<option value="${u.ldap}">${u.ldap}</option>`).join("");
+
+                let tbody = document.getElementById("crx-queue-tbody");
+                tbody.innerHTML = payload.data.length === 0 ? `<tr><td colspan="5" class="p-6 text-center text-slate-400">Empty configuration dataset.</td></tr>` : "";
+
+                payload.data.forEach(t => {
+                    const isResolved = t.status === 'RESOLVED';
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition text-xs">
+                            <td class="p-4 font-bold text-slate-900">#${t.id}</td>
+                            <td class="p-4">${t.l0_ldap}</td>
+                            <td class="p-4">ID: <span class="font-mono font-semibold">${t.item_id}</span><br>Rev: ${t.revision_id}</td>
+                            <td class="p-4 text-slate-500">${t.query_text}</td>
+                            <td class="p-4">
+                                <div class="flex flex-col gap-1 max-w-xs">
+                                    <select id="assignee-${t.id}" ${isResolved ? 'disabled' : ''} class="p-1 border text-xs bg-white">
+                                        ${t.crx_ldap ? `<option value="${t.crx_ldap}" selected>${t.crx_ldap}</option>` : crxOptionsHtml}
+                                    </select>
+                                    <select id="verdict-${t.id}" ${isResolved ? 'disabled' : ''} class="p-1 border text-xs font-medium bg-white">
+                                        <option value="Clear Violation" ${t.verdict === 'Clear Violation' ? 'selected' : ''}>Clear Violation</option>
+                                        <option value="No Violation" ${t.verdict === 'No Violation' ? 'selected' : ''}>No Violation</option>
+                                    </select>
+                                    <button onclick="submitVerdict(${t.id})" class="mt-1 ${isResolved ? 'bg-amber-500 hover:bg-amber-600' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-2 py-1 rounded text-[11px] font-bold">
+                                        ${isResolved ? 'Modify State' : 'Submit Action'}
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+                renderPaginationUI(payload.totalPages, payload.totalRecords);
+            } catch (err) { console.error(err); }
+        }
+
+        function renderPaginationUI(totalPages, totalRecords) {
+            const container = document.getElementById("pagination-controls");
+            if (totalRecords === 0) { container.innerHTML = ""; return; }
+            container.innerHTML = `
+                <div>Entries <b>${(currentPage-1)*limitPerPage + 1}</b> to <b>${Math.min(currentPage*limitPerPage, totalRecords)}</b> of <b>${totalRecords}</b> records</div>
+                <div class="flex items-center gap-2">
+                    <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''} class="px-2 py-1 bg-white border rounded disabled:opacity-50">Prev</button>
+                    <span>Page ${currentPage} of ${totalPages}</span>
+                    <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''} class="px-2 py-1 bg-white border rounded disabled:opacity-50">Next</button>
+                </div>`;
+        }
+
+        function changePage(dir) { currentPage += dir; renderCrxQueue(); }
+
+        async function submitVerdict(ticketId) {
+            const crx_ldap = document.getElementById(`assignee-${ticketId}`).value;
+            const verdict = document.getElementById(`verdict-${ticketId}`).value;
+            const status = 'RESOLVED'; 
+            
+            try {
+                await fetch(`${API_BASE}/tickets/${ticketId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ crx_ldap, verdict, status, last_updated: new Date().toLocaleString() })
+                });
+                renderCrxQueue();
+            } catch (err) { alert("Failed to modify ticket record state."); }
+        }
+
+        async function handleCreateUser(e) {
+            e.preventDefault();
+            try {
+                const res = await fetch(`${API_BASE}/users`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ldap: document.getElementById("manage-ldap").value.trim(),
+                        password: document.getElementById("manage-password").value,
+                        role: document.getElementById("manage-role").value
+                    })
+                });
+                if(res.status === 400) return alert("User already exists!");
+                document.getElementById("user-creation-form").reset();
+                renderUsersDirectory();
+            } catch (err) { alert("Error adding data entry profile."); }
+        }
+
+        async function renderUsersDirectory() {
+            try {
+                const res = await fetch(`${API_BASE}/users`);
+                const list = await res.json();
+                document.getElementById("users-directory-list").innerHTML = list.map(u => `
+                    <div class="py-2 flex justify-between text-xs">
+                        <span class="font-bold text-slate-800">${u.ldap}</span>
+                        <span class="px-1.5 rounded text-[10px] bg-slate-100">${u.role}</span>
+                    </div>`).join("");
+            } catch (err) {}
+        }
+    </script>
+</body>
+</html>
